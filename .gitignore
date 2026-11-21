@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backups / temp
+*.bak
+*.bak-*
+.bak-productshot
+*.tmp
+
+# Local outputs (user's own work, not part of the bundle)
+product-shot-output/
+product-shot-effects/

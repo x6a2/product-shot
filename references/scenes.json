@@ -1,0 +1,97 @@
+{
+  "_comment": "每个场景 = 一张预置背景 + 一套已验证的合成参数（按角度族分列）。bg 相对 assets/scenes。palette 对应 layouts.json 里的配色。",
+  "scenes": [
+    {
+      "id": "E",
+      "name": "石墨黑 · 暗黑金属",
+      "bg": "bg_a_darkmetal.png",
+      "palette": "dark",
+      "relight": { "direction": [1.0, -0.3], "amount": 0.035, "temp": 0.0, "lift": 1.0 },
+      "vertical": {
+        "base_y": 1492, "cx": 800, "scale": 1.0,
+        "shadow_len": 96, "shadow_op": 0.5, "shadow_blur": 34,
+        "ground": [1400, 1600], "shadow_rgb": [0, 0, 0],
+        "refl_op": 0.2, "refl_h": 150, "refl_blur": 5,
+        "contact": [620, 46, 20, 0.7]
+      }
+    },
+    {
+      "id": "F",
+      "name": "浅色影棚 · 石台",
+      "bg": "bg_b_lightstudio.png",
+      "palette": "light",
+      "relight": { "direction": [1.0, -0.4], "amount": 0.03, "temp": 0.012, "lift": 1.0 },
+      "vertical": {
+        "base_y": 1332, "cx": 800, "scale": 0.88,
+        "shadow_len": 84, "shadow_op": 0.3, "shadow_blur": 24,
+        "ground": [1215, 1352], "shadow_rgb": [88, 76, 60],
+        "refl_op": 0.0, "refl_h": 150, "refl_blur": 5,
+        "contact": [540, 38, 16, 0.62]
+      }
+    },
+    {
+      "id": "G",
+      "name": "暖调石材 · 洞石",
+      "bg": "bg_c_warmstone.png",
+      "palette": "stone",
+      "relight": { "direction": [1.0, -0.25], "amount": 0.03, "temp": 0.05, "lift": 1.01 },
+      "vertical": {
+        "base_y": 1328, "cx": 800, "scale": 0.87,
+        "shadow_len": 88, "shadow_op": 0.4, "shadow_blur": 26,
+        "ground": [1150, 1342], "shadow_rgb": [80, 55, 30],
+        "refl_op": 0.0, "refl_h": 150, "refl_blur": 5,
+        "contact": [540, 38, 16, 0.7]
+      }
+    },
+    {
+      "id": "H",
+      "name": "黑拉丝金属台面（俯视）",
+      "bg": "bg_h_darktable.png",
+      "palette": "dark",
+      "relight": { "direction": [1.0, -0.35], "amount": 0.035 },
+      "flat": {
+        "squash": 0.72, "angle": -3.0, "center": [800, 720], "scale": 1.0,
+        "shadow": [74, 86], "shadow_op": 0.55, "shadow_blur": 36,
+        "shadow_rgb": [0, 0, 0], "refl": 0.0
+      },
+      "diag": {
+        "squash": 0.70, "angle": -24.0, "center": [800, 780], "scale": 0.95,
+        "shadow": [80, 92], "shadow_op": 0.55, "shadow_blur": 38,
+        "shadow_rgb": [0, 0, 0], "refl": 0.0
+      }
+    },
+    {
+      "id": "I",
+      "name": "米白哑光石材台面（俯视）",
+      "bg": "bg_i_lighttable.png",
+      "palette": "light",
+      "relight": { "direction": [1.0, -0.4], "amount": 0.03, "temp": 0.008 },
+      "flat": {
+        "squash": 0.72, "angle": -3.0, "center": [800, 740], "scale": 0.96,
+        "shadow": [68, 78], "shadow_op": 0.42, "shadow_blur": 30,
+        "shadow_rgb": [92, 80, 62], "refl": 0.0
+      },
+      "diag": {
+        "squash": 0.70, "angle": -24.0, "center": [800, 790], "scale": 0.92,
+        "shadow": [74, 84], "shadow_op": 0.44, "shadow_blur": 32,
+        "shadow_rgb": [92, 80, 62], "refl": 0.0
+      }
+    },
+    {
+      "id": "J",
+      "name": "对角线光带（斜立/躺放）",
+      "bg": "bg_j_darkstreak.png",
+      "palette": "dark",
+      "relight": { "direction": [1.0, -0.3], "amount": 0.04 },
+      "tilt": {
+        "angle": -16.0, "center": [806, 700], "scale": 0.84, "tilt_back": 0.06,
+        "shadow": [10, 26], "shadow_op": 0.55, "shadow_blur": 46,
+        "refl": 0.16, "floor_y": 1240
+      },
+      "lie": {
+        "tilt": -30.0, "squash": 0.72, "k": 0.035,
+        "center": [800, 826], "target_long": 1330, "refl": 0.40, "mirror": true
+      }
+    }
+  ]
+}

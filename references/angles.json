@@ -1,0 +1,10 @@
+{
+  "_comment": "可用的角度族。renderer 决定 scripts/render.py 用哪套几何变换。",
+  "angles": [
+    { "id": "vertical", "name": "竖放（正面，产品占大部分面积）", "renderer": "vertical" },
+    { "id": "flat", "name": "横放（俯视台面）", "renderer": "flat" },
+    { "id": "diag", "name": "斜放（俯视台面，带旋转）", "renderer": "flat" },
+    { "id": "tilt", "name": "斜立（正面朝向镜头，微微后仰）", "renderer": "tilt" },
+    { "id": "lie", "name": "躺放（参考图 2 同款，短轴压缩）", "renderer": "lie" }
+  ]
+}

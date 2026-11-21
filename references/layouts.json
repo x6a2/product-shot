@@ -1,0 +1,25 @@
+{
+  "_comment": "排版文案与配色。文字全部由 Pillow 真实渲染，绝不交给 AI 生成（保证像素级清晰）。",
+  "fonts": {
+    "bold": "C:/Windows/Fonts/msyhbd.ttc",
+    "regular": "C:/Windows/Fonts/msyh.ttc",
+    "hei": "C:/Windows/Fonts/simhei.ttf"
+  },
+  "copy": {
+    "eyebrow": "LENS · CAMERA",
+    "title": "石墨黑",
+    "sub": "磨砂金属 · 全包防摔",
+    "adapt": ["适配 OPPO Reno17", "OPPO Reno17 Pro"],
+    "badge": "真机 1:1 开模"
+  },
+  "palettes": {
+    "dark":  { "fg": [243, 243, 245], "sub": [206, 208, 214], "dim": [150, 152, 160], "rule": [96, 98, 106], "badge_fg": [240, 240, 244], "badge_bd": [150, 152, 160], "accent": [255, 122, 69] },
+    "light": { "fg": [23, 24, 26], "sub": [52, 54, 58], "dim": [126, 118, 108], "rule": [198, 190, 178], "badge_fg": [255, 255, 255], "badge_bd": [215, 60, 45], "accent": [215, 60, 45] },
+    "stone": { "fg": [41, 31, 20], "sub": [74, 58, 40], "dim": [132, 108, 76], "rule": [168, 138, 98], "badge_fg": [255, 252, 246], "badge_bd": [150, 60, 30], "accent": [150, 60, 30] }
+  },
+  "layout": {
+    "hero":   { "poster": false, "X": 118, "product_cx": null },
+    "poster": { "poster": true,  "X": 118, "product_cx": 1078 }
+  },
+  "sharpen": { "radius": 1.15, "percent": 42, "threshold": 2 }
+}

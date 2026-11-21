@@ -1,0 +1,15 @@
+# product-shot —— 白底产品图 → 多场景多角度商品图（自包含 bundle）。
+#
+# config 全部可选，下面列的是默认值，不需要覆盖哪行就删哪行。
+# apiKey 留空时按 apiKeyRef 从 DSH 凭据里取（与 dsh-agnes-tools 共用同一套约定）。
+# outputDir / effectsDir 接受绝对路径，或相对 DSH 进程 cwd 的路径。
+- insert:
+    - id: product-shot
+      name: product-shot
+      config:
+        apiKey: ''
+        apiKeyRef: AGNES_API_KEY
+        baseURL: https://api.agnes-ai.cn/v1
+        imageModel: agnes-image-2.5-flash
+        outputDir: product-shot-output
+        effectsDir: product-shot-effects

@@ -1,0 +1,81 @@
+# 白底产品图 → 多场景多角度商品图（product-shot）
+
+把一张**白底产品图**，生成多套可交付的商品图：不同**场景**（暗黑金属 / 浅色影棚 / 暖石材 …）× 不同**角度**（竖放 / 横放 / 斜放 / 斜立 / 躺放）× 两种**排版**（hero 产品占满 / poster 左栏文案）。
+
+## 铁律（开工前先读）
+
+1. **产品上的文字（丝印 / logo / 型号）必须 100% 原样、像素级清晰** —— 绝不让 AI 重画产品或文字。
+2. AI 只负责生成"空背景"（场景），产品主体永远来自原图抠像，用 Pillow 合成。
+3. 抠图 / 放大 / 合成 / 排版 / 质检全部走 bundle 自带 `scripts/*.py`，不依赖第三方生图插件。
+4. 文案文字由 Pillow 真实渲染（绝不交给 AI 生成文字）。
+
+## 前置依赖
+
+- **Python**：调用 `load_workspace_dependencies` 拿 `python.exe` 绝对路径（自带 numpy + Pillow，无需 pip install）。
+- **生图**：本 bundle 的 `generate_scene` 工具（走 Agnes，用户自备 key；申请与接入见 `docs/如何申请并接入API_Key.md`）。
+- **字体**：默认 Windows 微软雅黑（`msyh.ttc` / `msyhbd.ttc` / `simhei.ttf`）；非 Windows 需改 `references/layouts.json` 的 `fonts`。
+
+## 脚本位置
+
+所有脚本在 bundle 根目录的 `scripts/` 下。skill 资源里给出的目录（resourceBase）就是 bundle 根，用 `<bundle根>/scripts/xxx.py` 这样的绝对路径调用。参数外置在 `references/{scenes,angles,layouts}.json`，改参数不用改代码。
+
+## 输入契约（preflight 会拒绝，别硬来）
+
+- 白底产品图，分辨率 **≥1200px**；产品四周留白、不贴边、无原投影。
+- 若用户要"躺放"角度、而源图近乎正面拍摄（几乎没有侧壁厚度），先告知该角度只能近似，并建议补拍一张 35° 俯拍图。
+
+## 标准工作流
+
+```bash
+PY="<load_workspace_dependencies 返回的 python.exe>"
+S="<bundle根>/scripts"
+
+# 1) 预检
+"$PY" "$S/preflight.py" --src <产品图>
+
+# 2) 抠图（白底 → RGBA 透明）
+"$PY" "$S/key.py" --src <产品图> --out <工作区>/product_rgba.png
+
+# 3) 预乘放大 2x + 边缘安全锐化
+"$PY" "$S/upscale.py" --src <工作区>/product_rgba.png --out <工作区>/product_2x.png
+
+# 4) 生成空背景：调用 generate_scene 工具（prompt 只描述场景，不要出现产品）
+#    或复用 assets/scenes/ 里已预置的 6 张背景（bg_a_darkmetal / bg_b_lightstudio /
+#    bg_c_warmstone / bg_h_darktable / bg_i_lighttable / bg_j_darkstreak）。
+
+# 5) 合成
+"$PY" "$S/render.py" --product <工作区>/product_2x.png --scene E --angle vertical \
+    --layout hero --out <工作区>/E_hero.png
+
+# 6) 排版 + 第二遍锐化（hero 只锐化不排字；poster 加左栏文案）
+"$PY" "$S/typography.py" --src <工作区>/E_hero.png --out <成品>/E_hero.png \
+    --palette dark --mode hero
+
+# 7) 质检（失败会非零退出，打印 JSON 报告）
+"$PY" "$S/verify.py" --matte <工作区>/product_2x.png --final <成品>/E_hero.png
+```
+
+## 参数速查
+
+- **场景 id**（`references/scenes.json`）：`E` 暗黑金属 / `F` 浅色影棚 / `G` 暖石材 / `H` 暗台面（横放）/ `I` 浅台面（横放）/ `J` 暗斜光带（斜立）。
+- **角度**（`--angle`）：`vertical` 竖放 / `flat` 横放 / `diag` 斜放 / `tilt` 斜立 / `lie` 躺放。
+- **palette**（`references/layouts.json`）：`dark` / `light` / `stone`，跟场景对应。
+- **mode**：`hero`（产品占满、无文字，类样品图）/ `poster`（产品右置 + 左栏文案）。
+
+## 效果图分区（用户放参考图的地方）
+
+开工前先列一下**效果图分区**（插件配置 `effectsDir`，默认 `product-shot-effects/`）里有没有用户新放的效果图；有的话按其风格/构图去生成，而不是套默认场景。bundle 自带的参考图在 `assets/effects/`。
+
+## 质量门（verify.py 会挡）
+
+1. matte 软边占比 ≤2%（软边太多 = 白边残留风险）。
+2. matte 透明区 RGB 均值 ≤0.15（反预乘失败 = 透明区残留白晕）。
+3. 成品 1600×1600 且非空白。
+
+任何一道不过就回头修 `key.py` / `upscale.py` 的抠图放大，不要带着白边交付。
+
+## 已知限制（要如实告知用户，别硬吹）
+
+- 几何合成能保证产品文字 100% 原样；代价是"躺放"在近正面源图上会偏薄（源图没有侧壁厚度）。
+- 若用户要"有厚度的躺放"，可选 AI 重绘，但会改动产品外观（机身 / 模组 / 丝印）——默认不这么做。
+- 字体默认依赖 Windows 微软雅黑；其他系统需自行改 `fonts`。
