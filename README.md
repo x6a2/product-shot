@@ -19,6 +19,13 @@
 | `imageModel` | `agnes-image-2.5-flash` | 生图模型 |
 | `outputDir` | `product-shot-output` | 成品输出目录 |
 | `effectsDir` | `product-shot-effects` | 预期效果图分区 |
+| `queueTimeoutMs` | `300000` | 免费通道排队多久算"卡住"（默认 5 分钟） |
+| `fallbackEnabled` | `false` | 是否启用付费 fallback 通道 |
+| `fallbackName` | `SiliconFlow` | 付费通道显示名（报价时用） |
+| `fallbackBaseURL` | 空 | 付费通道 OpenAI 兼容接口地址 |
+| `fallbackImageModel` | 空 | 付费通道生图模型 |
+| `fallbackApiKey` / `fallbackApiKeyRef` | 空 | 付费通道 key（直填 / 凭据引用） |
+| `fallbackPricePerImageRMB` | `0.05` | 单张报价（人民币） |
 
 ## 用法
 
@@ -59,6 +66,20 @@ product-shot/
 ## 预期效果图分区
 
 用户把想要的参考效果图丢进 `effectsDir`（默认 `product-shot-effects/`）即可；skill 开工前会先读这里，按用户放的效果图风格去生成。
+
+## 双通道生图（免费 → 付费 fallback）
+
+`generate_scene` 默认走免费 Agnes。若 Agnes 排队超过 `queueTimeoutMs`（默认 5 分钟），工具会返回 `queue_stalled` 并附付费通道的报价；skill 会停下来问用户要不要切换，用户同意才走 `channel: paid`。
+
+付费通道是 **OpenAI 兼容**接口，默认关闭。启用时填：
+
+- `fallbackEnabled: true`
+- `fallbackBaseURL`（如 SiliconFlow `https://api.siliconflow.cn/v1`）
+- `fallbackImageModel`（如 `black-forest-labs/FLUX.1-schnell` 或 `Qwen/Qwen-Image`）
+- `fallbackApiKey`（或 `fallbackApiKeyRef`）
+- `fallbackPricePerImageRMB`（报价用，如 `0.05`）
+
+> 付费通道只为"免费排队太久"兜底，不改变默认行为；不启用就不影响任何现有流程。
 
 ## 已知限制
 

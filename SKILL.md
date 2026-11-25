@@ -55,6 +55,16 @@ S="<bundle根>/scripts"
 "$PY" "$S/verify.py" --matte <工作区>/product_2x.png --final <成品>/E_hero.png
 ```
 
+## 双通道生图（免费 Agnes → 付费 fallback）
+
+`generate_scene` 默认走免费通道 Agnes。**若返回 `status: "queue_stalled"`**（Agnes 排队超过约 5 分钟仍未完成）：
+
+1. **停下问用户**（`ask_user_question` 或直接文字），把工具返回的 `fallback.provider` 和 `fallback.estimatedCostRMB` 报给用户，例如："免费通道排队超 5 分钟了，付费通道 SiliconFlow 预计约 ¥0.05/张，要切换吗？"
+2. 用户同意 → 用 `channel: "paid"` 重新调用 `generate_scene`（其余参数不变）。
+3. 用户不同意 → 稍后重试 `channel: "agnes"`，或改用 `assets/scenes/` 里的预置背景。
+
+付费通道是 OpenAI 兼容接口（默认未启用）：需在插件配置里填 `fallbackEnabled=true` + `fallbackBaseURL` + `fallbackImageModel` + `fallbackApiKey`（或 `fallbackApiKeyRef`）+ `fallbackPricePerImageRMB`（报价用）。
+
 ## 参数速查
 
 - **场景 id**（`references/scenes.json`）：`E` 暗黑金属 / `F` 浅色影棚 / `G` 暖石材 / `H` 暗台面（横放）/ `I` 浅台面（横放）/ `J` 暗斜光带（斜立）。
