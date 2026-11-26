@@ -1,118 +1,182 @@
-# 如何申请并接入生图 API Key（Agnes）
+# 如何申请并接入 API Key（五家通道）
 
-本文教第一次使用「白底图 → 产品图」插件（product-shot）的新用户：先申请一个免费的 Agnes AI 生图 Key，再把它填进 DeepSeek Harness（DSH）。全程约 2 分钟，只做一次。
+本文写给第一次用 product-shot 的人：先申请 key，再把它填进 DeepSeek Harness（DSH）。**只配你打算用的那几家就行，不需要全配。**
 
----
+| 通道 | 用途 | 是否必需 | 免费额度（2026-11 现状） |
+| --- | --- | --- | --- |
+| Agnes（`AGNES_API_KEY`） | 生图 + 免费生视频 | 生图**必需** | 图片免费；视频队列长期满 |
+| 智谱 BigModel（`ZHIPU_API_KEY`） | 免费生视频 + 付费 CogVideoX-3 | 可选（强烈建议） | CogVideoX-Flash **0 元** |
+| 阿里百炼（`DASHSCOPE_API_KEY`） | 万相生视频 | 可选 | 新用户按模型送秒数 |
+| 火山方舟（`ARK_API_KEY`） | Seedance 生视频 | 可选 | 每模型送 token |
+| 硅基流动（`SILICONFLOW_API_KEY`） | MiniMax-H3（带音轨） | 可选 | 无免费额度，需充值 |
 
-## 0. 为什么需要 Key
-
-- DSH 本身**没有生图能力**。本插件用 **Agnes AI** 的免费生图接口来生成场景背景图。
-- Agnes 要求每个用户用自己的 API Key（形如 `sk-xxxxx...`）调用，所以需要你注册账户并创建一个 Key。
-- 这个 Key 只属于你、只存在你自己的电脑上；你的用量、额度都记在你自己的账户里。
-
-> 本插件与常见的 `dsh-agnes-tools` 插件共用同一套 Key 约定（见第 2 节），
-> 如果你已经装过并配过它，同一个 Key 直接通用，不用再申请。
-
----
-
-## 1. 申请 API Key（免费）
-
-1. 打开 Agnes AI 平台（按所在地区二选一，两家是同一家的国内 / 国际节点）：
-   - **国内节点**：<https://platform.agnes-ai.cn/>
-   - **国际节点**：<https://platform.agnes-ai.com/>
-2. 注册账号，或登录已有账号。
-3. 进入控制台，找到 **设置 → API 密钥**（Settings → API Keys）。
-4. 点击 **创建新密钥**（Create New Key）。
-5. 复制生成的 Key（格式 `sk-xxxxx...`）。
-
-> ⚠️ **Key 一般只完整显示一次**，复制后请立刻保存到安全的地方。
->
-> 当前推广期图片 / 视频模型免费；免费额度约 **20 次请求 / 分钟**，日常做产品图完全够用。
+> 一家都没配也能装插件，但生图会直接报「未配置 key」；免费视频链则只剩已经配好的那几家。
 
 ---
 
-## 2. 把 Key 接入 DSH（三选一，推荐方式 A）
-
-插件按下面的顺序找 Key，**填一种即可**（填了多种就按这个顺序取第一个）：
+## 1. Key 填在哪里（三选一，按优先级取第一个）
 
 ```
-apiKey（插件配置里直接写） → DSH 凭据 AGNES_API_KEY → 环境变量 AGNES_API_KEY
+插件配置里的 xxxApiKey  →  DSH 凭据 refs 里的 xxxApiKeyRef  →  系统环境变量 xxxApiKeyRef
 ```
 
-### 方式 A：写在插件的 cordis.patch.yml（最简单，已验证可行）
+### 方式 A（推荐）：写进 DSH 凭据文件
 
-打开你的 DSH profile 补丁文件 `cordis.patch.yml`：
+文件：`C:\Users\<你的用户名>\.dsh\.credentials.yaml`（macOS / Linux 为 `~/.dsh/.credentials.yaml`）。
 
-- Windows 通常位于：`C:\Users\你的用户名\.dsh\profiles\<profile名>\cordis.patch.yml`
-
-找到本插件的行，在 `config` 下加 `apiKey`（以及你所在地区对应的 `baseURL`）：
+它本来就有 `version` / `refs` / `records` 三段，**只在 `refs:` 下面追加**，别动 `records:`：
 
 ```yaml
-- id: agnes                       # 本插件在 Loader 里的行 id（product-shot 的安装说明会写明）
-  name: dsh-agnes-tools
+version: 1
+refs:
+  AGNES_API_KEY: <你的 Agnes key>
+  ZHIPU_API_KEY: <你的智谱 key>
+  DASHSCOPE_API_KEY: <你的百炼 key>
+  ARK_API_KEY: <你的方舟 key>
+  SILICONFLOW_API_KEY: <你的硅基 key>
+records:
+  ...（保持原样，别删）
+```
+
+注意缩进：`refs:` 下每行**两个空格**，冒号后一个空格，key **不要加引号**。
+
+改完**立即生效**，不用重启 DSH（凭据是在每次调用时读取的）。如果 DSH 界面有「凭据 / Credentials」入口，在那里新增同名条目效果一样。
+
+### 方式 B：写在插件配置里
+
+在插件配置（或 profile 的 `cordis.patch.yml` 里本插件那行）直接填：
+
+```yaml
+- id: product-shot
+  name: product-shot
   config:
-    apiKey: sk-你的Key
-    baseURL: https://api.agnes-ai.cn/v1        # 国内节点
-    # baseURL: https://apihub.agnes-ai.com/v1  # 国际节点（二选一）
-    imageModel: agnes-image-2.5-flash
+    zhipuApiKey: <你的智谱 key>
+    dashscopeApiKey: <你的百炼 key>
 ```
 
-保存后**重启 dsh**（host 侧插件在启动时装载，没有热加载）。
-
-> 不推荐把 Key 长期明文写在配置里，但这是最快、最不容易出错的方式；
-> 更讲究的做法用下面的方式 B。
-
-### 方式 B：存进 DSH 凭据（更安全，进阶）
-
-DSH 的凭据服务按名字读 Key，本插件默认读名为 `AGNES_API_KEY` 的凭据。在 DSH 的凭据文件
-`$DSH_HOME/.env`（Windows：`C:\Users\你的用户名\.dsh\.env`）里加一行：
-
-```
-AGNES_API_KEY=sk-你的Key
-```
-
-保存后重启 dsh。若你的 DSH 界面提供了「凭据 / Credentials」的图形入口，在那里新增一条
-`AGNES_API_KEY` 效果等同。
+这种方式需要**重载插件**才生效（DSH 插件页关一下再开）。明文写在配置里不如方式 A 安全。
 
 ### 方式 C：系统环境变量
 
-在系统环境变量里新增 `AGNES_API_KEY`，值填你的 Key，然后重启 dsh。
+把变量名设成上面的 `xxxApiKeyRef`（如 `ZHIPU_API_KEY`），值填 key，然后重启 DSH。适合 CI / 服务器。
 
 ---
 
-## 3. 验证是否接入成功
+## 2. 逐家申请
 
-在 dsh 对话里说一句「列出我可用的生图模型」，让 Agent 调用 `agnes_models`（或直接运行对应工具）：
+### 2.1 Agnes（生图必需）
 
-- **能列出模型清单**（如 `agnes-image-2.5-flash`）→ Key 有效、已接通 ✅
-- 报「Agnes API Key 未配置」→ 还没读到 Key，回到第 2 节检查填的位置
-- 报 `401` / `403` → Key 抄错、多带了空格、或已撤销，重新复制一遍
+1. 打开 <https://platform.agnes-ai.cn/>（国内）或 <https://platform.agnes-ai.com/>（国际）。
+2. 注册 / 登录 → **设置 → API 密钥** → 创建新密钥。
+3. 复制 `sk-...` 开头的 key。
+
+- 国内节点 `baseURL` 用 `https://api.agnes-ai.cn/v1`；国际节点用 `https://apihub.agnes-ai.com/v1`。
+- 和 `dsh-agnes-tools` 插件共用同一个 `AGNES_API_KEY`，装过它就不用再申请。
+
+### 2.2 智谱 BigModel（免费视频首选）
+
+1. 打开 <https://open.bigmodel.cn/> → 注册 / 登录。
+2. 控制台 → **API Keys** → 新建，复制 key（形如 `xxxxxxxx.xxxxxxxx`，两段中间一个点）。
+3. 想用付费档 `cogvideox-3` 再充值；免费档 `cogvideox-flash` 不用充钱。
+
+- **注意**：智谱会做内容审核，**中文提示词容易被拦**（报「系统检测到输入或生成内容可能包含不安全或敏感内容」）。写视频 prompt 用中性英文，别带人物、品牌、敏感词。
+- 免费档有并发限制，排队是正常现象。
+
+### 2.3 阿里百炼（万相）
+
+1. 打开 <https://bailian.console.aliyun.com/>（需阿里云账号）。
+2. 右上角 **API-KEY** → 创建，复制 key（注意：新版 workspace key 形如 `sk-ws-...`，也支持 `sk-` + 32 位）。
+3. **必须先在「模型广场」开通** `wanx2.1-t2v-turbo`（文生）和 `wanx2.1-i2v-turbo`（图生），否则接口报模型未开通。
+
+- 按秒计费（约 ¥0.24/秒），新用户有赠送额度；额度用完会自动扣费，请在控制台看余额。
+- 图生视频的图片要用公网可访问的 URL。
+
+### 2.4 火山方舟（Seedance）
+
+1. 打开 <https://console.volcengine.com/ark>（需火山引擎账号）。
+2. **API Key 管理** → 创建，复制 key（形如 `ark-xxxx-...`）。
+3. 到 **模型广场** 开通 `doubao-seedance-1-0-pro-fast-251015`（不开通会报模型不存在/未授权）。
+
+- 每个模型有免费 token 额度；参数（分辨率、时长、画幅）通过 prompt 后缀传给模型，插件已经拼好。
+
+### 2.5 硅基流动（MiniMax-H3，带音轨）
+
+1. 打开 <https://cloud.siliconflow.cn/> → 注册 / 登录。
+2. **API 密钥** → 新建，复制 `sk-...`。
+3. 需要先充值（无免费视频额度）；模型 `MiniMaxAI/MiniMax-H3` 已默认可用。
+
+- 单价约 ¥0.5/秒（768P，带音轨），是三家里最贵的，但出片带声音。
 
 ---
 
-## 4. 常见问题
+## 3. 怎么确认配好了（不花钱）
+
+任选一种；返回「鉴权通过」就说明 key 填对了，**不会产生生成费用**。
+
+```bash
+# 智谱：400 + code 1233 = key 可用；401 = key 无效
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -H "Authorization: Bearer <智谱key>" \
+  https://open.bigmodel.cn/api/paas/v4/async-result/probe-not-exist
+
+# 百炼：200（task_status=UNKNOWN）= key 可用；401 = key 无效
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -H "Authorization: Bearer <百炼key>" \
+  https://dashscope.aliyuncs.com/api/v1/tasks/probe-not-exist
+
+# 方舟：404 ResourceNotFound = key 可用；401 = key 无效
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -H "Authorization: Bearer <方舟key>" \
+  https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks/probe-not-exist
+
+# 硅基：200 = key 可用
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -H "Authorization: Bearer <硅基key>" \
+  https://api.siliconflow.cn/v1/models
+```
+
+在 DSH 里也可以直接说「生成一个 5 秒测试视频」，看返回的是「已生成视频」还是「没配 key」。
+
+---
+
+## 4. 注意事项（务必看）
+
+1. **key 不要提交到 Git / 不要发给别人**。这个插件只从你本机的凭据文件、插件配置或环境变量读取 key，仓库里没有任何 key。
+2. 别人用这个插件时，**各自配自己的 key**，用量算在各自账号上。
+3. **改凭据文件立即生效**；改插件配置（`cordis.patch.yml`）需要重载插件或重启 DSH。
+4. 免费额度是各家营销政策，**随时会变**；插件里的报价是参考价（`PRICE_UPDATED` 常量标注日期），真实扣费以各家账单为准。
+5. **不自动扣费**：免费链排队超时会停下来给你一张多平台报价表，你选中哪家、说了「走付费」，才会调用付费通道。
+6. 智谱的**内容审核**会拦中文提示词（见 2.2）；被拦时换英文中性描述。
+7. 百炼 / 方舟要**先在控制台开通对应模型**，否则报「模型未开通 / 不存在」。
+8. 图生视频时，**本地图片会以 data URI 提交**；若某家接口只认公网 URL，会明确报错提示你换 URL。
+9. 排队满（`503 video_queue_full`）不是 key 的问题，是平台队列；插件会退避重试并换下一家。
+10. key 泄露了就立刻去控制台**吊销重建**，再更新凭据文件。
+
+---
+
+## 5. 常见问题
 
 | 现象 | 原因 / 处理 |
 | --- | --- |
-| `401` / `403` | Key 错、复制时多带空格、或已撤销 → 重新复制 |
-| `429` | 超过免费额度 20 请求/分钟 → 稍等片刻再试 |
-| `503 video_queue_full` | 视频队列满（生图一般不会遇到）→ 插件自动退避重试 |
-| 生图返回慢 / 失败 | 换国际节点 `https://apihub.agnes-ai.com/v1`；图片走 base64 返回，不依赖境外图床 |
-| 图片落在哪 | `outputDir` 指定的目录（默认 `agnes-output`） |
+| 「没配 key：请填 xxxApiKey，或在 DSH 凭据里配 XXX_API_KEY」 | 该家没配；按第 1 节填，或不管它（免费链会跳过这家） |
+| `401` / `令牌已过期或验证不正确` | key 抄错、少了字符、或已被吊销 |
+| 智谱报「内容可能包含不安全或敏感内容」 | 提示词过审失败，改中性英文（见 2.2） |
+| 百炼报模型未开通 | 去模型广场开通 `wanx2.1-t2v-turbo` |
+| 方舟报 ResourceNotFound / 未授权 | 去模型广场开通 `doubao-seedance-1-0-pro-fast-251015` |
+| `503 video_queue_full` | 平台队列满，等一会儿或换下一家（插件自动做） |
+| 报价里某家显示「未配置 key」 | 那家没配；不影响其他通道 |
+| 出片落在哪 | `outputDir/videos/`（默认 `product-shot-output/videos/`） |
 
 ---
 
-## 附：本插件用到的关键配置项（供排查参考）
+## 附：本插件用到的 key 相关配置项
 
-| 键 | 默认值 | 说明 |
+| 键 | 默认 ref | 说明 |
 | --- | --- | --- |
-| `apiKey` | 空 | 直接写 Key，优先级最高（不推荐长期明文） |
-| `apiKeyRef` | `AGNES_API_KEY` | 从 DSH 凭据里按这个名字取 Key |
-| `baseURL` | `https://api.agnes-ai.cn/v1` | 国内节点；国际站用 `https://apihub.agnes-ai.com/v1` |
-| `imageModel` | `agnes-image-2.5-flash` | 生图模型 |
-| `videoModel` | `agnes-video-2.5-flash` | 生视频模型 |
-| `outputDir` | `agnes-output` | 产物输出目录（绝对路径，或相对 dsh 进程 cwd） |
-
-> 数据来源（已在本机核对）：`dsh-agnes-tools@0.1.0` 的 `cordis.patch.yml`、`README.md`、
-> `lib/index.js`（`resolveKey()` 的解析顺序与报错文案），以及 Agnes 官方文档
-> <https://wiki.agnes-ai.cn/zh-Hans/docs/cid5>。
+| `apiKey` / `apiKeyRef` | `AGNES_API_KEY` | 生图 + Agnes 视频 |
+| `zhipuApiKey` / `zhipuApiKeyRef` | `ZHIPU_API_KEY` | 智谱（免费 Flash / 付费 CogVideoX-3） |
+| `dashscopeApiKey` / `dashscopeApiKeyRef` | `DASHSCOPE_API_KEY` | 阿里百炼万相 |
+| `arkApiKey` / `arkApiKeyRef` | `ARK_API_KEY` | 火山方舟 Seedance |
+| `siliconflowApiKey` / `siliconflowApiKeyRef` | `SILICONFLOW_API_KEY` | 硅基流动 MiniMax-H3 |
+| `fallbackApiKey` / `fallbackApiKeyRef` | 空 | 自定义付费生图通道 |
+| `fallbackEnabled` | `false` | 自定义付费视频通道开关 |

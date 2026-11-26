@@ -7,7 +7,38 @@
 ## 安装
 
 1. DSH → **Plugins → Add plugin** → 选择本目录（`product-shot/`）。
-2. 申请并接入 Agnes API Key（见 [docs/如何申请并接入API_Key.md](docs/如何申请并接入API_Key.md)，与 `dsh-agnes-tools` 共用同一套 key 约定，填一次即可）。
+2. 配 key（见下一节，2 分钟）：生图至少要 Agnes；生视频可选再加智谱 / 百炼 / 方舟 / 硅基。
+
+## 配 API Key（2 分钟）
+
+五家通道各用各的 key，**只配你打算用的那几家**。完整教程（申请入口、开通模型、排错）见
+[docs/如何申请并接入API_Key.md](docs/如何申请并接入API_Key.md)。
+
+**推荐做法**：打开 `C:\Users\<你的用户名>\.dsh\.credentials.yaml`，只在 `refs:` 下追加（缩进两空格，key 不加引号）：
+
+```yaml
+version: 1
+refs:
+  AGNES_API_KEY: <你的 Agnes key>          # 生图必需
+  ZHIPU_API_KEY: <你的智谱 key>            # 免费视频首选
+  DASHSCOPE_API_KEY: <你的百炼 key>        # 万相
+  ARK_API_KEY: <你的方舟 key>              # Seedance
+  SILICONFLOW_API_KEY: <你的硅基 key>      # MiniMax-H3（带音轨）
+# records: ...（保持原样，别删）
+```
+
+- 改凭据文件**立即生效**，不用重启；在插件配置里直接填 `xxxApiKey` 则要重载插件。
+- 优先级：插件配置 `xxxApiKey` → 凭据 `xxxApiKeyRef` → 环境变量同名。
+
+**注意事项**
+
+1. **key 只留在本机**：不要提交到 Git、不要贴进 prompt、不要发给别人；本仓库不含任何 key，别人用就配自己的。
+2. 免费额度会变、会排队；插件里的价格是参考价（常量 `PRICE_UPDATED` 标日期），以官网账单为准。
+3. **不会自动扣费**：免费链排队超时会返回多平台报价表，你选定 `provider` 并明确同意后才走 `channel: "paid"`。
+4. 智谱有**内容审核**，中文提示词容易被拦，用中性英文描述。
+5. 百炼 / 方舟要先在控制台**开通对应模型**（`wanx2.1-t2v-turbo` / `doubao-seedance-1-0-pro-fast-251015`），否则报模型未开通。
+6. 图生视频的本地图以 data URI 提交；某家只认公网 URL 时会明确报错，换 URL 即可。
+7. key 泄露立刻去控制台吊销重建，再更新凭据文件。
 
 ## 配置（全部可选，均可改）
 

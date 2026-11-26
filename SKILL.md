@@ -13,7 +13,7 @@
 
 - **Python**：调用 `load_workspace_dependencies` 拿 `python.exe` 绝对路径（自带 numpy + Pillow，无需 pip install）。
 - **生图**：本 bundle 的 `generate_scene` 工具（走 Agnes，用户自备 key；申请与接入见 `docs/如何申请并接入API_Key.md`）。
-- **生视频**：本 bundle 的 `generate_video` / `video_status` 工具；默认免费链（Agnes → 智谱 → 百炼 → 方舟，720P），超时后按平台报价由用户选付费通道。其他家的 key 用 `ZHIPU_API_KEY` / `DASHSCOPE_API_KEY` / `ARK_API_KEY` / `SILICONFLOW_API_KEY`（可选，缺哪家就少一条通道）。
+- **生视频**：本 bundle 的 `generate_video` / `video_status` 工具；默认免费链（Agnes → 智谱 → 百炼 → 方舟，720P），超时后按平台报价由用户选付费通道。其他家的 key 用 `ZHIPU_API_KEY` / `DASHSCOPE_API_KEY` / `ARK_API_KEY` / `SILICONFLOW_API_KEY`（可选，缺哪家就少一条通道；配置与注意事项见 README「配 API Key」）。
 - **字体**：默认 Windows 微软雅黑（`msyh.ttc` / `msyhbd.ttc` / `simhei.ttf`）；非 Windows 需改 `references/layouts.json` 的 `fonts`。
 
 ## 脚本位置
