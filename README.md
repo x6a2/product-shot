@@ -110,6 +110,8 @@ product-shot/
 
 - 几何合成能保证文字 100% 原样，但"躺放"在近正面源图上会偏薄（源图无侧壁厚度）；要厚度需 AI 重绘，会改动产品外观。
 - 字体默认 Windows 微软雅黑；其他系统改 `references/layouts.json` 的 `fonts`。
+- 免费 Agnes 视频队列经常是满的（`video_queue_full`）：`generate_video` 会重试到 10 分钟预算再返回 `queue_stalled`，这时要么继续等（`video_status`），要么配好付费通道再走 `channel: "paid"`。
+- 视频里的产品文字会糊/漂移，丝印文字仍以静态成品图和后期字幕为准；图生视频的本地图以 data URI 提交，若接口要求公网 URL 会明确报错提示。
 
 ## 许可
 
