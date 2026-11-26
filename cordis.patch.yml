@@ -13,3 +13,5 @@
         imageModel: agnes-image-2.5-flash
         outputDir: product-shot-output
         effectsDir: product-shot-effects
+        videoModel: agnes-video-2.5-flash
+        videoQueueTimeoutMs: 600000

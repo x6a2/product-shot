@@ -26,6 +26,14 @@
 | `fallbackImageModel` | 空 | 付费通道生图模型 |
 | `fallbackApiKey` / `fallbackApiKeyRef` | 空 | 付费通道 key（直填 / 凭据引用） |
 | `fallbackPricePerImageRMB` | `0.05` | 单张报价（人民币） |
+| `videoModel` | `agnes-video-2.5-flash` | 免费视频模型 |
+| `videoQueueTimeoutMs` | `600000` | 免费视频排队多久算"卡住"（默认 10 分钟） |
+| `videoPollIntervalMs` | `8000` | 视频任务轮询间隔 |
+| `videoStatusWaitMs` | `120000` | `video_status` 一次最多等多久 |
+| `fallbackVideoModel` | 空 | 付费视频通道模型（留空 = 付费视频不可用） |
+| `fallbackVideoEndpoint` | 空 | 付费视频提交端点，默认 `${fallbackBaseURL}/videos/generations` |
+| `fallbackVideoStatusEndpoint` | 空 | 付费视频状态端点（异步出片）：含 `{id}` 用 GET，否则 POST `{requestId}` |
+| `fallbackPricePerVideoRMB` | `0.5` | 单条视频报价（人民币） |
 
 ## 用法
 
@@ -80,6 +88,23 @@ product-shot/
 - `fallbackPricePerImageRMB`（报价用，如 `0.05`）
 
 > 付费通道只为"免费排队太久"兜底，不改变默认行为；不启用就不影响任何现有流程。
+
+## 双通道生视频（免费 → 付费 fallback）
+
+`generate_video` 默认走免费 Agnes 视频（720P）：文生视频，或把已质检的 `hero` 成品图当首帧做图生视频（产品外观不变）。成品落在 `outputDir/videos/`。
+
+免费队列拥堵时提交会被拒（`video_queue_full`），工具会自动退避重试；**从提交开始累计排队超过 `videoQueueTimeoutMs`（默认 10 分钟）** 就返回 `queue_stalled`，附上 `video_id`、当前阶段和付费通道报价，skill 会停下来问用户：继续等免费（`video_status` 续查），还是改 `channel: "paid"`。任务不会因为这次超时被丢弃。
+
+付费视频通道是通用的 OpenAI 兼容风格接口，默认关闭：
+
+- `fallbackEnabled: true`
+- `fallbackBaseURL` + `fallbackVideoModel`
+- `fallbackVideoEndpoint`（可选，默认 `${fallbackBaseURL}/videos/generations`）
+- `fallbackVideoStatusEndpoint`（可选，异步出片时填：含 `{id}` 用 GET，否则 POST `{requestId}`）
+- `fallbackApiKey`（或 `fallbackApiKeyRef`）
+- `fallbackPricePerVideoRMB`（报价用，如 `0.5`）
+
+> 视频里的产品文字会糊/漂移，丝印文字仍以静态成品图和后期字幕为准。
 
 ## 已知限制
 

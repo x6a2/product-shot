@@ -1,7 +1,7 @@
 {
   "name": "product-shot",
-  "version": "0.2.0",
-  "description": "白底产品图 → 多场景多角度商品图：抠图、场景生成、合成、排版、质检的全流程自包含 bundle。",
+  "version": "0.3.0",
+  "description": "白底产品图 → 多场景多角度商品图 + 商品短视频：抠图、场景生成、合成、排版、质检，生图/生视频双通道（免费 → 付费 fallback）。",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -28,6 +28,7 @@
     "product-shot",
     "ecommerce",
     "product-image",
+    "product-video",
     "white-background"
   ],
   "license": "MIT",

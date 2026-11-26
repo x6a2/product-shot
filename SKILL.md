@@ -13,6 +13,7 @@
 
 - **Python**：调用 `load_workspace_dependencies` 拿 `python.exe` 绝对路径（自带 numpy + Pillow，无需 pip install）。
 - **生图**：本 bundle 的 `generate_scene` 工具（走 Agnes，用户自备 key；申请与接入见 `docs/如何申请并接入API_Key.md`）。
+- **生视频**：本 bundle 的 `generate_video` / `video_status` 工具（同样走 Agnes，默认免费 720P）。
 - **字体**：默认 Windows 微软雅黑（`msyh.ttc` / `msyhbd.ttc` / `simhei.ttf`）；非 Windows 需改 `references/layouts.json` 的 `fonts`。
 
 ## 脚本位置
@@ -53,7 +54,40 @@ S="<bundle根>/scripts"
 
 # 7) 质检（失败会非零退出，打印 JSON 报告）
 "$PY" "$S/verify.py" --matte <工作区>/product_2x.png --final <成品>/E_hero.png
+
+# 8) 可选：把质检通过的 hero 成品图做成短视频（图生视频，产品外观不变）
+#    generate_video(prompt="缓慢横移特写，柔光", image="<成品>/E_hero.png",
+#                   seconds="5", aspect_ratio="16:9")
 ```
+
+## 双通道生视频（免费 Agnes 视频 → 付费 fallback）
+
+`generate_video` 默认走免费 Agnes 视频（720P）：
+
+- **文生视频**：只给 `prompt`。
+- **图生视频（推荐）**：把已质检通过的 `hero` 成品图作为首帧传 `image`（本地路径或公网 URL），产品外观不会被重画。
+- **参考图模式**：传 `references`（最多 5 张），适合同一产品多角度。
+
+默认 `seconds: "5"`、`aspect_ratio: "16:9"`（竖版投放用 `"9:16"`），成品落在 `outputDir/videos/`。
+
+**免费通道排队超过 10 分钟**（`videoQueueTimeoutMs`，默认 `600000`）时，工具返回 `status: "queue_stalled"`，并带上：
+
+- `phase`：`submit`（还没提交进去）/ `poll`（已提交、生成中）
+- `video_id`：已提交成功时保留，可用 `video_status` 继续等
+- `fallback`：付费通道名、预估单价、是否启用/配齐
+
+这时**必须停下来问用户**（`ask_user_question` 或直接文字），把已等时长、`fallback.provider`、`fallback.estimatedCostRMB` 报清楚，给两条路：
+
+1. **继续等免费**：`video_status` 带同一个 `video_id`（一次最多 `wait_seconds` 秒，默认 120，可反复调）。任务不会因为超时被丢弃。
+2. **改付费**：`generate_video` 带 `channel: "paid"`，其余参数不变。
+
+规则：
+
+- 用户明确同意前**绝不自动切付费**；`fallback.configured: false` 就如实说"付费通道未配置"，只给继续等/放弃。
+- 用户选继续等 → `video_status` 返回 `done`（已自动下载）/ `pending`（还在跑，稍后再查）/ `failed`（带原因）。
+- 视频里的产品文字会糊、会漂移：**不要指望模型把丝印重画对**，重要文案靠后期贴图/字幕，或只把视频当动效底片。
+
+付费视频通道（默认未启用，OpenAI 兼容风格）：`fallbackEnabled=true` + `fallbackBaseURL` + `fallbackVideoModel` + `fallbackApiKey`（或 `fallbackApiKeyRef`）；可选 `fallbackVideoEndpoint`（默认 `${fallbackBaseURL}/videos/generations`）、`fallbackVideoStatusEndpoint`（异步出片时填：含 `{id}` 用 GET 替换，否则 POST `{requestId}`）、`fallbackPricePerVideoRMB`（报价用，默认 0.5）。
 
 ## 双通道生图（免费 Agnes → 付费 fallback）
 
