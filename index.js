@@ -43,6 +43,7 @@ export const Config = z.object({
   videoQueueTimeoutMs: z.number().default(600000),
   /** 视频任务轮询间隔（毫秒）。 */
   videoPollIntervalMs: z.number().default(8000),
+  videoSubmitPatienceMs: z.number().default(60000),
   /** video_status 一次调用最多等多久（毫秒）。 */
   videoStatusWaitMs: z.number().default(120000),
   /** 付费视频通道模型 id（留空 = 付费视频不可用）。 */
@@ -102,6 +103,7 @@ const DEFAULTS = {
   videoModel: 'agnes-video-2.5-flash',
   videoQueueTimeoutMs: 600000,
   videoPollIntervalMs: 8000,
+  videoSubmitPatienceMs: 60000,
   videoStatusWaitMs: 120000,
   fallbackVideoModel: '',
   fallbackVideoEndpoint: '',
@@ -366,6 +368,9 @@ function pickVideoUrl(data) {
     data?.output?.url,
     Array.isArray(data?.output) ? data.output[0]?.url : undefined,
     data?.videos?.[0]?.url,
+    data?.video_result?.[0]?.url,
+    data?.video_result?.[0]?.video_url,
+    Array.isArray(data?.video_result) ? data.video_result[0]?.url : undefined,
   ]
   return list.find((one) => typeof one === 'string' && one.length > 0) ?? ''
 }
@@ -562,8 +567,10 @@ async function resolveProviderKey(ctx, config, id) {
       : p.defaultRef
   if (!ref) return ''
   try {
-    const value = await ctx.get('credentials')?.resolve(ref)
-    if (value) return String(value).trim()
+    const got = await ctx.get('credentials')?.resolve(ref)
+    const value =
+      typeof got === 'string' ? got : typeof got?.value === 'string' ? got.value : ''
+    if (value.trim()) return value.trim()
   } catch {
     /* 凭据服务不可用时退回环境变量 */
   }
@@ -900,7 +907,7 @@ async function downloadVideo(config, url, savePath, signal) {
  * 跑一家 provider：提交（队列满自动重试）→ 轮询 → 到 deadline 为止。
  * 返回 {status: done|failed|queue_stalled|quota_exhausted, ...}。
  */
-async function runProviderJob(ctx, config, id, key, job, { deadline, savePath, signal, taskId: preset = '' }) {
+async function runProviderJob(ctx, config, id, key, job, { deadline, savePath, signal, taskId: preset = '', submitDeadline = 0 }) {
   const adapter = VIDEO_ADAPTERS[id]
   const startedAt = Date.now()
   let taskId = preset
@@ -908,6 +915,8 @@ async function runProviderJob(ctx, config, id, key, job, { deadline, savePath, s
   let lastMessage = ''
   let notFound = 0
   let attempt = 0
+  // 提交阶段单独设上限：某家队列一直满时先换下一家，而不是让一家吃满总预算。
+  const submitLimit = submitDeadline ? Math.min(deadline, submitDeadline) : deadline
 
   while (Date.now() < deadline) {
     if (!taskId) {
@@ -925,7 +934,7 @@ async function runProviderJob(ctx, config, id, key, job, { deadline, savePath, s
         if (retryable) {
           lastMessage = shortError(err)
           const wait = Math.min(30000, 6000 + (attempt - 1) * 4000)
-          if (Date.now() + wait >= deadline) break
+          if (Date.now() + wait >= submitLimit) break
           await sleep(wait, signal)
           continue
         }
@@ -1032,6 +1041,7 @@ async function runFreeChain(ctx, config, job, { started, savePath, signal }) {
     available.push({ id, key })
   }
 
+  const patience = Math.max(5000, Number(config.videoSubmitPatienceMs) || 60000)
   let stall = null
   for (let i = 0; i < available.length; i++) {
     const { id, key } = available[i]
@@ -1039,7 +1049,12 @@ async function runFreeChain(ctx, config, job, { started, savePath, signal }) {
     const left = available.length - i
     const slice = Math.min(deadline, now + Math.max(20000, (deadline - now) / left))
     if (slice <= now) break
-    const result = await runProviderJob(ctx, config, id, key, job, { deadline: slice, savePath, signal })
+    const result = await runProviderJob(ctx, config, id, key, job, {
+      deadline: slice,
+      submitDeadline: Math.min(slice, now + patience),
+      savePath,
+      signal,
+    })
     if (result.status === 'done') return { ...result, provider: id, tried }
     if (result.status === 'quota_exhausted') {
       providerState.set(id, { quotaExhausted: true })
@@ -1592,7 +1607,6 @@ export function apply(ctx, rawConfig) {
   ctx.tools.register(sceneTool(ctx, config))
   ctx.tools.register(videoTool(ctx, config))
   ctx.tools.register(videoStatusTool(ctx, config))
-
   const content = readFileSync(new URL('./SKILL.md', import.meta.url), 'utf8')
   ctx.skills.register({
     name: 'product-shot',

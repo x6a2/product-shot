@@ -80,6 +80,8 @@ S="<bundle根>/scripts"
 | `ark` | 每模型送 token | Seedance pro-fast ≈ ¥0.20/秒 | 运动幅度大、镜头感强，可 1080P |
 | `siliconflow` | — | MiniMax-H3 ≈ ¥0.50/秒 | 带音轨，768P |
 
+**某一家卡在提交阶段超过 `videoSubmitPatienceMs`（默认 60 秒）就自动换下一家**，不让一家吃满 10 分钟总预算；真的都试过还没出，才算卡住。
+
 **免费链累计排队超过 10 分钟**（`videoQueueTimeoutMs`，默认 `600000`，在可用通道间均分）时，工具返回 `status: "queue_stalled"`，并带上：
 
 - `tried[]`：每家试没试成、为什么（未配 key / 额度用尽 / 队列满），以及可续查的 `video_id`

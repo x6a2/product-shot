@@ -29,6 +29,7 @@
 | `videoModel` | `agnes-video-2.5-flash` | 免费视频模型 |
 | `videoQueueTimeoutMs` | `600000` | 免费链排队多久算“卡住”（默认 10 分钟，在可用通道间均分） |
 | `videoPollIntervalMs` | `8000` | 视频任务轮询间隔 |
+| `videoSubmitPatienceMs` | `60000` | 某家“提交阶段”最多等多久，超时就换下一家（不占满总预算） |
 | `videoStatusWaitMs` | `120000` | `video_status` 一次最多等多久 |
 | `freeChain` | `agnes,zhipu,dashscope,ark` | 免费链顺序（逗号分隔；没配 key 的家自动跳过） |
 | `zhipuApiKeyRef` / `zhipuBaseURL` / `zhipuVideoModel` | `ZHIPU_API_KEY` / `https://open.bigmodel.cn/api/paas/v4` / `cogvideox-flash` | 智谱：Flash 免费；付费 `zhipuPaidVideoModel` 默认 `cogvideox-3` |
