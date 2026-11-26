@@ -15,3 +15,4 @@
         effectsDir: product-shot-effects
         videoModel: agnes-video-2.5-flash
         videoQueueTimeoutMs: 600000
+        freeChain: agnes,zhipu,dashscope,ark

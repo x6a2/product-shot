@@ -13,7 +13,7 @@
 
 - **Python**：调用 `load_workspace_dependencies` 拿 `python.exe` 绝对路径（自带 numpy + Pillow，无需 pip install）。
 - **生图**：本 bundle 的 `generate_scene` 工具（走 Agnes，用户自备 key；申请与接入见 `docs/如何申请并接入API_Key.md`）。
-- **生视频**：本 bundle 的 `generate_video` / `video_status` 工具（同样走 Agnes，默认免费 720P）。
+- **生视频**：本 bundle 的 `generate_video` / `video_status` 工具；默认免费链（Agnes → 智谱 → 百炼 → 方舟，720P），超时后按平台报价由用户选付费通道。其他家的 key 用 `ZHIPU_API_KEY` / `DASHSCOPE_API_KEY` / `ARK_API_KEY` / `SILICONFLOW_API_KEY`（可选，缺哪家就少一条通道）。
 - **字体**：默认 Windows 微软雅黑（`msyh.ttc` / `msyhbd.ttc` / `simhei.ttf`）；非 Windows 需改 `references/layouts.json` 的 `fonts`。
 
 ## 脚本位置
@@ -60,9 +60,9 @@ S="<bundle根>/scripts"
 #                   seconds="5", aspect_ratio="16:9")
 ```
 
-## 双通道生视频（免费 Agnes 视频 → 付费 fallback）
+## 多通道生视频（免费链 → 多平台付费，报价交用户选）
 
-`generate_video` 默认走免费 Agnes 视频（720P）：
+`generate_video` 默认 `channel: "auto"`：按 `freeChain`（默认 `agnes,zhipu,dashscope,ark`）顺序试**免费/送额度**的通道，某家额度用尽会自动标记并换下一家。
 
 - **文生视频**：只给 `prompt`。
 - **图生视频（推荐）**：把已质检通过的 `hero` 成品图作为首帧传 `image`（本地路径或公网 URL），产品外观不会被重画。
@@ -70,24 +70,34 @@ S="<bundle根>/scripts"
 
 默认 `seconds: "5"`、`aspect_ratio: "16:9"`（竖版投放用 `"9:16"`），成品落在 `outputDir/videos/`。
 
-**免费通道排队超过 10 分钟**（`videoQueueTimeoutMs`，默认 `600000`）时，工具返回 `status: "queue_stalled"`，并带上：
+各通道（2026-11-26 参考价，以官网为准）：
 
-- `phase`：`submit`（还没提交进去）/ `poll`（已提交、生成中）
-- `video_id`：已提交成功时保留，可用 `video_status` 继续等
-- `fallback`：付费通道名、预估单价、是否启用/配齐
+| provider | 免费额度 | 付费参考价 | 特点 |
+| --- | --- | --- | --- |
+| `agnes` | 免费 720P | — | 画面干净、运镜自然，但队列经常满 |
+| `zhipu` | CogVideoX-Flash ¥0 | CogVideoX-3 ≈ ¥1/条 | 免费里质量最稳，限并发排队 |
+| `dashscope` | 新用户送秒数 | 万相 2.1 turbo ≈ ¥0.24/秒 | 商品主体还原好、动作幅度保守 |
+| `ark` | 每模型送 token | Seedance pro-fast ≈ ¥0.20/秒 | 运动幅度大、镜头感强，可 1080P |
+| `siliconflow` | — | MiniMax-H3 ≈ ¥0.50/秒 | 带音轨，768P |
 
-这时**必须停下来问用户**（`ask_user_question` 或直接文字），把已等时长、`fallback.provider`、`fallback.estimatedCostRMB` 报清楚，给两条路：
+**免费链累计排队超过 10 分钟**（`videoQueueTimeoutMs`，默认 `600000`，在可用通道间均分）时，工具返回 `status: "queue_stalled"`，并带上：
 
-1. **继续等免费**：`video_status` 带同一个 `video_id`（一次最多 `wait_seconds` 秒，默认 120，可反复调）。任务不会因为超时被丢弃。
-2. **改付费**：`generate_video` 带 `channel: "paid"`，其余参数不变。
+- `tried[]`：每家试没试成、为什么（未配 key / 额度用尽 / 队列满），以及可续查的 `video_id`
+- `quotes[]`：**所有免费与付费档的即时报价**（provider、模型、预估 RMB、画质优劣、是否已配 key、文档链接）
+- `phase`：`submit`（还没提交进去）/ `poll`（已提交、生成中）/ `all`（免费链都没成）
+
+这时**必须停下来问用户**，把 `quotes` 的价格和优劣整理成对比表让用户挑 —— 这是产品要求：每次超时都报价对比，由用户决定，不替他选。给两条路：
+
+1. **继续等免费**：`video_status` 带 `tried[].video_id`（一次最多 `wait_seconds` 秒，默认 120，可反复调）。任务不会因为超时被丢弃。
+2. **走付费**：`generate_video`（参数不变）加 `channel: "paid"` + `provider: "<用户选中的>"`。若用户只想把某一家免费额度再试一次，用 `channel: "free"` + `provider: "<那家>"`。
 
 规则：
 
-- 用户明确同意前**绝不自动切付费**；`fallback.configured: false` 就如实说"付费通道未配置"，只给继续等/放弃。
-- 用户选继续等 → `video_status` 返回 `done`（已自动下载）/ `pending`（还在跑，稍后再查）/ `failed`（带原因）。
+- 用户明确选好 provider 前**绝不自动扣费、绝不自动切付费**；报价里 `configured: false` 的家要如实说“还差哪个 key”（`ZHIPU_API_KEY` / `DASHSCOPE_API_KEY` / `ARK_API_KEY` / `SILICONFLOW_API_KEY`）。
+- `video_status` 返回 `done`（已自动下载）/ `pending`（还在跑，稍后再查）/ `failed`（带原因；4xx 多为图片取不到，改公网 URL 再试）。
 - 视频里的产品文字会糊、会漂移：**不要指望模型把丝印重画对**，重要文案靠后期贴图/字幕，或只把视频当动效底片。
 
-付费视频通道（默认未启用，OpenAI 兼容风格）：`fallbackEnabled=true` + `fallbackBaseURL` + `fallbackVideoModel` + `fallbackApiKey`（或 `fallbackApiKeyRef`）；可选 `fallbackVideoEndpoint`（默认 `${fallbackBaseURL}/videos/generations`）、`fallbackVideoStatusEndpoint`（异步出片时填：含 `{id}` 用 GET 替换，否则 POST `{requestId}`）、`fallbackPricePerVideoRMB`（报价用，默认 0.5）。
+自定义付费通道（旧 `fallback*` 配置，OpenAI 兼容风格）：`fallbackEnabled=true` + `fallbackBaseURL` + `fallbackVideoModel` + `fallbackApiKey`（或 `fallbackApiKeyRef`）；可选 `fallbackVideoEndpoint`（默认 `${fallbackBaseURL}/videos/generations`）、`fallbackVideoStatusEndpoint`（含 `{id}` 用 GET 替换，否则 POST `{requestId}`）、`fallbackPricePerVideoRMB`（报价用）。
 
 ## 双通道生图（免费 Agnes → 付费 fallback）
 

@@ -27,13 +27,19 @@
 | `fallbackApiKey` / `fallbackApiKeyRef` | 空 | 付费通道 key（直填 / 凭据引用） |
 | `fallbackPricePerImageRMB` | `0.05` | 单张报价（人民币） |
 | `videoModel` | `agnes-video-2.5-flash` | 免费视频模型 |
-| `videoQueueTimeoutMs` | `600000` | 免费视频排队多久算"卡住"（默认 10 分钟） |
+| `videoQueueTimeoutMs` | `600000` | 免费链排队多久算“卡住”（默认 10 分钟，在可用通道间均分） |
 | `videoPollIntervalMs` | `8000` | 视频任务轮询间隔 |
 | `videoStatusWaitMs` | `120000` | `video_status` 一次最多等多久 |
-| `fallbackVideoModel` | 空 | 付费视频通道模型（留空 = 付费视频不可用） |
-| `fallbackVideoEndpoint` | 空 | 付费视频提交端点，默认 `${fallbackBaseURL}/videos/generations` |
-| `fallbackVideoStatusEndpoint` | 空 | 付费视频状态端点（异步出片）：含 `{id}` 用 GET，否则 POST `{requestId}` |
-| `fallbackPricePerVideoRMB` | `0.5` | 单条视频报价（人民币） |
+| `freeChain` | `agnes,zhipu,dashscope,ark` | 免费链顺序（逗号分隔；没配 key 的家自动跳过） |
+| `zhipuApiKeyRef` / `zhipuBaseURL` / `zhipuVideoModel` | `ZHIPU_API_KEY` / `https://open.bigmodel.cn/api/paas/v4` / `cogvideox-flash` | 智谱：Flash 免费；付费 `zhipuPaidVideoModel` 默认 `cogvideox-3` |
+| `dashscopeApiKeyRef` / `dashscopeBaseURL` / `dashscopeT2VModel` / `dashscopeI2VModel` | `DASHSCOPE_API_KEY` / `https://dashscope.aliyuncs.com/api/v1` / `wanx2.1-t2v-turbo` / `wanx2.1-i2v-turbo` | 阿里百炼万相 |
+| `arkApiKeyRef` / `arkBaseURL` / `arkVideoModel` | `ARK_API_KEY` / `https://ark.cn-beijing.volces.com/api/v3` / `doubao-seedance-1-0-pro-fast-251015` | 火山方舟 Seedance |
+| `siliconflowApiKeyRef` / `siliconflowBaseURL` / `siliconflowVideoModel` | `SILICONFLOW_API_KEY` / `https://api.siliconflow.cn/v1` / `MiniMaxAI/MiniMax-H3` | 硅基流动 MiniMax-H3（无免费额度） |
+| `priceZhipuPerVideo` / `priceDashscopePerSecond` / `priceArkPerSecond` / `priceSiliconflowPerSecond` | `1` / `0.24` / `0.2` / `0.5` | 报价单价（RMB，官网调价时改这里） |
+| `fallbackVideoModel` | 空 | 自定义付费视频通道模型（留空 = 不用自定义通道） |
+| `fallbackVideoEndpoint` | 空 | 自定义付费提交端点，默认 `${fallbackBaseURL}/videos/generations` |
+| `fallbackVideoStatusEndpoint` | 空 | 自定义付费状态端点（异步出片）：含 `{id}` 用 GET，否则 POST `{requestId}` |
+| `fallbackPricePerVideoRMB` | `0.5` | 自定义付费通道单条报价（RMB） |
 
 ## 用法
 
@@ -89,28 +95,37 @@ product-shot/
 
 > 付费通道只为"免费排队太久"兜底，不改变默认行为；不启用就不影响任何现有流程。
 
-## 双通道生视频（免费 → 付费 fallback）
+## 多通道生视频（免费链 → 多平台付费，报价交用户选）
 
-`generate_video` 默认走免费 Agnes 视频（720P）：文生视频，或把已质检的 `hero` 成品图当首帧做图生视频（产品外观不变）。成品落在 `outputDir/videos/`。
+`generate_video` 默认 `channel: "auto"`：按 `freeChain`（默认 `agnes,zhipu,dashscope,ark`）顺序试免费/送额度的通道 —— Agnes 视频、智谱 CogVideoX-Flash、百炼万相免费秒数、方舟 Seedance 免费 token。某家额度用尽会记进 `tried` 并自动换下一家。
 
-免费队列拥堵时提交会被拒（`video_queue_full`），工具会自动退避重试；**从提交开始累计排队超过 `videoQueueTimeoutMs`（默认 10 分钟）** 就返回 `queue_stalled`，附上 `video_id`、当前阶段和付费通道报价，skill 会停下来问用户：继续等免费（`video_status` 续查），还是改 `channel: "paid"`。任务不会因为这次超时被丢弃。
+文生视频只给 `prompt`；图生视频把已质检的 `hero` 成品图当首帧传 `image`（产品外观不变）；也可传 1–5 张 `references` 做多角度。默认 720P、5 秒、`16:9`，成品落在 `outputDir/videos/`。
 
-付费视频通道是通用的 OpenAI 兼容风格接口，默认关闭：
+免费链累计排队超过 `videoQueueTimeoutMs`（默认 10 分钟，在可用通道间均分）→ 返回 `queue_stalled`，带：
 
-- `fallbackEnabled: true`
-- `fallbackBaseURL` + `fallbackVideoModel`
-- `fallbackVideoEndpoint`（可选，默认 `${fallbackBaseURL}/videos/generations`）
-- `fallbackVideoStatusEndpoint`（可选，异步出片时填：含 `{id}` 用 GET，否则 POST `{requestId}`）
-- `fallbackApiKey`（或 `fallbackApiKeyRef`）
-- `fallbackPricePerVideoRMB`（报价用，如 `0.5`）
+- `tried[]`：每家试没试成、为什么（未配 key / 额度用尽 / 队列满）
+- `quotes[]`：**所有免费与付费档的即时报价**（provider、模型、预估 RMB、画质优劣、是否已配 key、文档链接）
+- `video_id`：已提交成功的那单保留，`video_status` 可续查，任务不丢
 
-> 视频里的产品文字会糊/漂移，丝印文字仍以静态成品图和后期字幕为准。
+skill 会停下来，把报价整理成对比表让用户挑：继续等免费，或 `channel: "paid"` + `provider: "<选中的>"`。**用户不点头不扣费。**
+
+各通道（2026-11-26 参考价，以官网为准）：
+
+| provider | 免费额度 | 付费参考价 | 特点 |
+| --- | --- | --- | --- |
+| `agnes` | 免费 720P | — | 画面干净、运镜自然；队列经常满 |
+| `zhipu` | CogVideoX-Flash ¥0 | CogVideoX-3 ≈ ¥1/条 | 免费里最稳，限并发排队 |
+| `dashscope` | 新用户送秒数 | 万相 2.1 turbo ≈ ¥0.24/秒 | 商品主体还原好、动作保守 |
+| `ark` | 每模型送 token | Seedance pro-fast ≈ ¥0.20/秒 | 运动幅度大、可 1080P |
+| `siliconflow` | — | MiniMax-H3 ≈ ¥0.50/秒 | 带音轨，768P |
+
+自定义付费通道（旧 `fallback*` 配置，OpenAI 兼容风格）仍可用：`fallbackEnabled: true` + `fallbackBaseURL` + `fallbackVideoModel` + key，可选 `fallbackVideoEndpoint` / `fallbackVideoStatusEndpoint` / `fallbackPricePerVideoRMB`。
 
 ## 已知限制
 
 - 几何合成能保证文字 100% 原样，但"躺放"在近正面源图上会偏薄（源图无侧壁厚度）；要厚度需 AI 重绘，会改动产品外观。
 - 字体默认 Windows 微软雅黑；其他系统改 `references/layouts.json` 的 `fonts`。
-- 免费 Agnes 视频队列经常是满的（`video_queue_full`）：`generate_video` 会重试到 10 分钟预算再返回 `queue_stalled`，这时要么继续等（`video_status`），要么配好付费通道再走 `channel: "paid"`。
+- 免费视频队列经常满（尤其 Agnes）：免费链会退避重试并换下一家，10 分钟预算用完就返回 `queue_stalled` + 全平台报价。要真走付费，得先配好对应家的 key：`ZHIPU_API_KEY` / `DASHSCOPE_API_KEY` / `ARK_API_KEY` / `SILICONFLOW_API_KEY`（缺哪家，报价里会标 `configured: false`）。
 - 视频里的产品文字会糊/漂移，丝印文字仍以静态成品图和后期字幕为准；图生视频的本地图以 data URI 提交，若接口要求公网 URL 会明确报错提示。
 
 ## 许可
